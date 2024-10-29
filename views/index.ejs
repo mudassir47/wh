@@ -1,0 +1,103 @@
+<!-- views/index.ejs -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WhatsApp Bot QR Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+            background-color: #f4f4f4;
+        }
+        #qr {
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+            display: none;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        #logoutBtn {
+            margin-top: 30px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
+        #logoutBtn:hover {
+            background-color: #ff1a1a;
+        }
+    </style>
+</head>
+<body>
+    <h1>WhatsApp Bot Authentication</h1>
+    <img id="qr" src="" alt="QR Code">
+    <p id="status">Connecting...</p>
+    <button id="logoutBtn">Logout</button>
+
+    <!-- Socket.io Client Library -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        const qrImg = document.getElementById('qr');
+        const statusText = document.getElementById('status');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        socket.on('qr', (qr) => {
+            qrImg.src = qr;
+            qrImg.style.display = 'block';
+            statusText.innerHTML = 'QR Code received, scan please!';
+            logoutBtn.style.display = 'none';
+        });
+
+        socket.on('ready', () => {
+            qrImg.style.display = 'none';
+            statusText.innerHTML = 'WhatsApp Client is ready!';
+            logoutBtn.style.display = 'inline-block';
+        });
+
+        socket.on('authenticated', () => {
+            statusText.innerHTML = 'Authenticated successfully!';
+            qrImg.style.display = 'none';
+            logoutBtn.style.display = 'inline-block';
+        });
+
+        socket.on('auth_failure', (msg) => {
+            statusText.innerHTML = 'Authentication failure, check the logs.';
+            console.error('AUTH FAILURE', msg);
+        });
+
+        socket.on('disconnected', (reason) => {
+            statusText.innerHTML = `WhatsApp Client disconnected: ${reason}`;
+            qrImg.style.display = 'block';
+            qrImg.src = '';
+            logoutBtn.style.display = 'none';
+        });
+
+        socket.on('message', (msg) => {
+            statusText.innerHTML = msg;
+        });
+
+        // Handle Logout Button Click
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to logout? This will disconnect the WhatsApp session.')) {
+                socket.emit('logout');
+                statusText.innerHTML = 'Logging out...';
+                logoutBtn.style.display = 'none';
+                qrImg.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
